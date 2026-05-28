@@ -2,10 +2,10 @@ import streamlit as st
 import requests
 
 # 🌟 මෙතනට ඔයාගේ Ngrok ලින්ක් එක දෙන්න
-BACKEND_URL = st.sidebar.text_input("Backend URL", value="https://YOUR_NGROK_SUBDOMAIN.ngrok-free.app")
+BACKEND_URL = st.sidebar.text_input("Backend URL", value="BACKEND_URL = "https://seventh-boney-subject.ngrok-free.dev"")
 
 st.title("🚀 Loan Approval MLOps Dashboard")
-st.write("FastAPI Real-Time Prediction App එකට සම්බන්ධ කර ඇති Frontend එක.")
+st.write("FastAPI Real-Time Prediction App ")
 
 st.sidebar.header("User Input Features")
 age = st.sidebar.slider("Age", 18, 75, 35)
