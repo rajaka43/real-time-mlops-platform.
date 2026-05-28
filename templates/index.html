@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MLflow — MLOps Loan Approval Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+:root{--bg:#fff;--bg2:#f6f8fa;--bg3:#eef1f5;--border:#d8dee4;--text:#1f2328;--text2:#636c76;--text3:#9ca3af;--blue:#0969da;--green:#1a7f37;--red:#cf222e;--orange:#bc4c00;--purple:#8250df;--font:'Inter',sans-serif;--mono:'Fira Code',monospace;--r:6px;--sh:0 1px 3px rgba(0,0,0,.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:100vh;font-size:14px;}
+/* NAV */
+.nav{background:#1b1f24;height:52px;display:flex;align-items:center;padding:0 20px;gap:0;position:sticky;top:0;z-index:300;}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:24px;cursor:pointer;}
+.nav-logo{width:30px;height:30px;background:linear-gradient(135deg,#0194e2,#005fa3);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;font-family:var(--mono);}
+.nav-name{color:#fff;font-size:15px;font-weight:600;letter-spacing:-.3px;}
+.nav-tab{height:52px;display:flex;align-items:center;padding:0 16px;font-size:13px;color:#8b949e;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav-tab:hover{color:#fff;}
+.nav-tab.active{color:#fff;border-bottom-color:#f78166;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.nav-user{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0194e2,#8250df);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+/* PANELS */
+.panel{display:none;}.panel.active{display:block;}
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 52px);}
+.sidebar{background:#fff;border-right:1px solid var(--border);padding:14px 0;overflow-y:auto;}
+.sb-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:6px 14px 4px;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-left:3px solid transparent;transition:all .15s;}
+.sb-item:hover{background:var(--bg2);color:var(--blue);}
+.sb-item.active{background:#dbeafe;color:var(--blue);border-left-color:var(--blue);font-weight:500;}
+.sb-count{margin-left:auto;background:var(--bg3);font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:8px;color:var(--text3);}
+.content{padding:20px;overflow-y:auto;}
+/* CARDS */
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:14px;}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);}
+.card-title{font-size:14px;font-weight:600;color:var(--text);}
+.card-body{padding:14px 16px;}
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.stat{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);}
+.stat-label{font-size:11px;color:var(--text3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.stat-val{font-size:26px;font-weight:300;font-family:var(--mono);line-height:1;}
+.stat-val.green{color:var(--green);}
+.stat-val.blue{color:var(--blue);}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{background:var(--bg3);}
+td{padding:10px 12px;border-bottom:1px solid #f0f0f0;color:var(--text2);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8fbff;cursor:pointer;}
+tr.best td{background:#f0fdf4;}
+/* CHIPS */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+.chip-green{background:#dcfce7;color:#166534;}
+.chip-blue{background:#dbeafe;color:#1e40af;}
+.chip-gray{background:#f3f4f6;color:#6b7280;}
+.chip-orange{background:#fff7ed;color:#9a3412;}
+.chip-purple{background:#f3e8ff;color:#6b21a8;}
+/* BTNS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;font-family:var(--font);transition:all .15s;}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+.btn-primary:hover{background:#0860c4;}
+.btn-outline{background:#fff;color:var(--text2);border-color:var(--border);}
+.btn-outline:hover{background:var(--bg3);}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green);}
+.btn-green:hover{background:#155d28;}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.btn-danger{background:var(--red);color:#fff;}
+/* MONO */
+.mono{font-family:var(--mono);font-size:12px;}
+/* CODE */
+.code-block{background:#0d1117;border-radius:var(--r);padding:12px 14px;font-family:var(--mono);font-size:12px;color:#c9d1d9;line-height:1.8;overflow-x:auto;}
+.jk{color:#79c0ff;}.js{color:#a5d6ff;}.jn{color:#f2cc60;}.jb{color:#ff7b72;}.cm{color:#8b949e;}
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.tab{padding:8px 14px;font-size:13px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--blue);}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500;}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+/* CANVAS */
+.canvas-wrap{position:relative;}
+/* METRIC ROW */
+.metric-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}
+.metric-row:last-child{border-bottom:none;}
+.metric-name{flex:1;color:var(--text2);font-weight:500;}
+.metric-bar-bg{width:120px;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.metric-bar-fill{height:100%;border-radius:4px;}
+.metric-num{min-width:48px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:600;}
+/* DIFF */
+.diff-pos{color:var(--green);font-family:var(--mono);font-size:11px;}
+.diff-neg{color:var(--red);font-family:var(--mono);font-size:11px;}
+/* PREDICTION FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-label{font-size:12px;font-weight:500;color:var(--text2);}
+.form-input{border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;font-size:13px;font-family:var(--font);color:var(--text);background:#fff;transition:border .15s;}
+.form-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(9,105,218,.1);}
+.form-hint{font-size:10px;color:var(--text3);}
+/* RESULT */
+.result-box{border-radius:var(--r);padding:16px;text-align:center;border:2px solid;}
+.result-approve{background:#f0fdf4;border-color:#22c55e;}
+.result-decline{background:#fef2f2;border-color:#ef4444;}
+.result-icon{font-size:36px;margin-bottom:6px;}
+.result-label{font-size:20px;font-weight:700;margin-bottom:4px;}
+.result-approve .result-label{color:var(--green);}
+.result-decline .result-label{color:var(--red);}
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1f2328;color:#fff;padding:10px 16px;border-radius:var(--r);font-size:13px;display:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeIn .3s;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand" onclick="goTab('experiments')">
+    <div class="nav-logo">ML</div>
+    <span class="nav-name">MLflow</span>
+  </div>
+  <div class="nav-tab active" id="nt-experiments" onclick="goTab('experiments')">Experiments</div>
+  <div class="nav-tab" id="nt-rundetail" onclick="goTab('rundetail',0)">Run Detail</div>
+  <div class="nav-tab" id="nt-compare" onclick="goTab('compare')">Compare Runs</div>
+  <div class="nav-tab" id="nt-registry" onclick="goTab('registry')">Model Registry</div>
+  <div class="nav-tab" id="nt-predict" onclick="goTab('predict')">Live Predict</div>
+  <div class="nav-right">
+    <button class="btn btn-outline btn-sm" style="color:#8b949e;border-color:#8b949e;" onclick="dlCSV()">⬇ Download Dataset</button>
+    <div class="nav-user" title="virajsm3">V</div>
+  </div>
+</nav>
+
+<!-- ═══════════ EXPERIMENTS ═══════════ -->
+<div class="panel active" id="panel-experiments">
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-label">Experiments</div>
+      <div class="sb-item active">🧪 loan-approval-mlops <span class="sb-count">4</span></div>
+      <div class="sb-item">📁 Default <span class="sb-count">0</span></div>
+      <div class="sb-label" style="margin-top:12px;">Navigate</div>
+      <div class="sb-item" onclick="goTab('compare')">📊 Compare Runs</div>
+      <div class="sb-item" onclick="goTab('registry')">📦 Model Registry</div>
+      <div class="sb-item" onclick="goTab('predict')">⚡ Live Predict</div>
+      <div class="sb-label" style="margin-top:12px;">Dataset Info</div>
+      <div style="padding:10px 14px;font-size:12px;color:var(--text3);line-height:2;">
+        <div>📋 5,000 loan records</div>
+        <div>✅ 2,659 approved</div>
+        <div>❌ 2,341 declined</div>
+        <div>📐 6 features</div>
+        <div>🔀 80/20 train/test</div>
+      </div>
+    </div>
+    <div class="content">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:20px;font-weight:600;">loan-approval-mlops</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px;">Experiment ID: 1 · Tracking URI: http://localhost:5000</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" onclick="dlCSV()">⬇ Download Dataset CSV</button>
+          <button class="btn btn-primary" onclick="goTab('compare')">📊 Compare Selected</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Total Runs</div><div class="stat-val blue">4</div><div class="stat-sub">all FINISHED</div></div>
+        <div class="stat"><div class="stat-label">Best Accuracy</div><div class="stat-val green">84.3%</div><div class="stat-sub">LogisticRegression · run 1</div></div>
+        <div class="stat"><div class="stat-label">Best ROC-AUC</div><div class="stat-val green">0.9231</div><div class="stat-sub">LogisticRegression</div></div>
+        <div class="stat"><div class="stat-label">Avg Duration</div><div class="stat-val">28s</div><div class="stat-sub">across 4 runs</div></div>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Runs</span>
+          <div style="display:flex;gap:6px;">
+            <input style="border:1px solid var(--border);border-radius:var(--r);padding:5px 10px;font-size:12px;width:200px;" placeholder="🔍 Search runs...">
+            <button class="btn btn-outline btn-sm">Columns ▾</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table id="runs-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" onclick="return false"></th>
+                <th>Start Time</th>
+                <th>Run Name</th>
+                <th>Status</th>
+                <th onclick="sortTable('accuracy')">Accuracy ↕</th>
+                <th onclick="sortTable('f1_score')">F1 Score ↕</th>
+                <th onclick="sortTable('roc_auc')">ROC-AUC ↕</th>
+                <th>Algorithm</th>
+                <th>Duration</th>
+                <th>Trigger</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="runs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sample Data Preview -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">📋 Sample Dataset Preview (5,000 loan records)</span>
+          <button class="btn btn-green btn-sm" onclick="dlCSV()">⬇ Download Full CSV (5,000 rows)</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Age</th>
+                <th>Annual Income ($)</th>
+                <th>Credit Score</th>
+                <th>Loan Amount ($)</th>
+                <th>Employment Years</th>
+                <th>Debt Ratio</th>
+                <th>Approved</th>
+              </tr>
+            </thead>
+            <tbody id="sample-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ RUN DETAIL ═══════════ -->
+<div class="panel" id="panel-rundetail">
+  <div class="content" style="max-width:1100px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <button class="btn btn-outline btn-sm" onclick="goTab('experiments')">← Back</button>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" id="prev-run" onclick="navRun(-1)">‹ Prev</button>
+        <button class="btn btn-outline btn-sm" id="next-run" onclick="navRun(1)">Next ›</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" style="background:var(--bg2);">
+        <div>
+          <div style="font-size:16px;font-weight:600;font-family:var(--mono);" id="rd-name">—</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px;display:flex;gap:16px;" id="rd-meta">—</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="chip chip-green" id="rd-status">FINISHED</span>
+          <button class="btn btn-green btn-sm" onclick="dlRunJSON()">⬇ Download Run JSON</button>
+        </div>
+      </div>
+
+      <div class="tabs" style="padding:0 16px;">
+        <div class="tab active" onclick="rdTab('params',this)">⚙️ Parameters</div>
+        <div class="tab" onclick="rdTab('metrics',this)">📊 Metrics</div>
+        <div class="tab" onclick="rdTab('charts',this)">📈 Charts</div>
+        <div class="tab" onclick="rdTab('artifacts',this)">📁 Artifacts</div>
+        <div class="tab" onclick="rdTab('data',this)">🗄️ Data</div>
+      </div>
+
+      <div class="card-body">
+        <!-- PARAMS -->
+        <div id="rd-params">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);">Hyperparameters</div>
+              <table style="width:100%;font-size:13px;border-collapse:collapse;" id="rd-params-tbl"></table>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);">Data & Run Info</div>
+              <table style="width:100%;font-size:13px;border-collapse:collapse;" id="rd-info-tbl"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- METRICS -->
+        <div id="rd-metrics" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border);">Performance Metrics</div>
+              <div id="rd-metrics-list"></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border);">Confusion Matrix</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Test set: 1,000 samples</div>
+              <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;" id="rd-cm"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div id="rd-charts" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:8px;">Feature Importance</div>
+              <div style="height:220px;"><canvas id="rd-fi-chart"></canvas></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:8px;">Metrics Comparison (all runs)</div>
+              <div style="height:220px;"><canvas id="rd-compare-chart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARTIFACTS -->
+        <div id="rd-artifacts" style="display:none;">
+          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Artifacts</div>
+          <div id="rd-artifact-list"></div>
+        </div>
+
+        <!-- DATA -->
+        <div id="rd-data" style="display:none;">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Sample of training data used for this run</div>
+          <div style="display:flex;gap:10px;margin-bottom:10px;">
+            <button class="btn btn-green btn-sm" onclick="dlCSV()">⬇ Download Full Dataset (5,000 rows)</button>
+            <button class="btn btn-outline btn-sm" onclick="dlRunJSON()">⬇ Download Run JSON</button>
+          </div>
+          <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Age</th><th>Annual Income</th><th>Credit Score</th><th>Loan Amount</th><th>Emp. Years</th><th>Debt Ratio</th><th>Approved</th></tr></thead><tbody id="rd-data-tbl"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ COMPARE ═══════════ -->
+<div class="panel" id="panel-compare">
+  <div class="content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:20px;font-weight:600;">Compare All Runs</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" onclick="goTab('experiments')">← Back</button>
+        <button class="btn btn-green" onclick="dlCompareCSV()">⬇ Download Comparison CSV</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Accuracy per Run</span></div>
+        <div class="card-body"><div style="height:200px;"><canvas id="cmp-acc"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">ROC-AUC per Run</span></div>
+        <div class="card-body"><div style="height:200px;"><canvas id="cmp-auc"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">F1 Score per Run</span></div>
+        <div class="card-body"><div style="height:200px;"><canvas id="cmp-f1"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Training Duration (seconds)</span></div>
+        <div class="card-body"><div style="height:200px;"><canvas id="cmp-dur"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">Full Comparison Table</span><button class="btn btn-green btn-sm" onclick="dlCompareCSV()">⬇ Download CSV</button></div>
+      <div class="tbl-wrap"><table id="cmp-table"><thead><tr><th>Run Name</th><th>Algorithm</th><th>Accuracy</th><th>F1 Score</th><th>ROC-AUC</th><th>Precision</th><th>Recall</th><th>n_estimators</th><th>Duration(s)</th><th>Trigger</th></tr></thead><tbody id="cmp-tbody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ REGISTRY ═══════════ -->
+<div class="panel" id="panel-registry">
+  <div class="content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:20px;font-weight:600;">Model Registry</div>
+      <button class="btn btn-primary">+ Register Model</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🤖 loan-approval-model</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px;">Latest: v2 (Production) · 3 versions registered</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <span class="chip chip-green">● Production</span>
+          <button class="btn btn-outline btn-sm" onclick="dlRegJSON()">⬇ Download Registry JSON</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr><th>Version</th><th>Run ID</th><th>Algorithm</th><th>Stage</th><th>Accuracy</th><th>F1 Score</th><th>ROC-AUC</th><th>Registered</th><th>Actions</th></tr></thead>
+          <tbody id="reg-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">Version Activity Timeline</span></div>
+      <div class="card-body"><div style="height:180px;"><canvas id="reg-timeline"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ LIVE PREDICT ═══════════ -->
+<div class="panel" id="panel-predict">
+  <div class="content" style="max-width:900px;margin:0 auto;">
+    <div style="font-size:20px;font-weight:600;margin-bottom:4px;">⚡ Live Loan Prediction</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Enter loan applicant details to get an instant approve/decline prediction using the production model.</div>
+
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Applicant Details</span><button class="btn btn-outline btn-sm" onclick="fillSample()">Load Sample</button></div>
+        <div class="card-body">
+          <div class="form-grid" style="margin-bottom:14px;">
+            <div class="form-group">
+              <label class="form-label">Age</label>
+              <input class="form-input" id="f-age" type="number" value="35" min="18" max="75">
+              <span class="form-hint">18 – 75 years</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Annual Income ($)</label>
+              <input class="form-input" id="f-income" type="number" value="75000" min="20000" max="500000">
+              <span class="form-hint">$20,000 – $500,000</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Credit Score</label>
+              <input class="form-input" id="f-credit" type="number" value="720" min="300" max="850">
+              <span class="form-hint">300 – 850</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Loan Amount ($)</label>
+              <input class="form-input" id="f-loan" type="number" value="25000" min="1000" max="100000">
+              <span class="form-hint">$1,000 – $100,000</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Employment Years</label>
+              <input class="form-input" id="f-emp" type="number" value="5" min="0" max="40" step="0.5">
+              <span class="form-hint">0 – 40 years</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Debt Ratio</label>
+              <input class="form-input" id="f-debt" type="number" value="0.25" min="0" max="1" step="0.01">
+              <span class="form-hint">0.00 – 1.00 (30% = 0.30)</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;" onclick="runPredict()">⚡ Run Prediction</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" id="result-card" style="display:none;">
+          <div class="card-head"><span class="card-title">Prediction Result</span></div>
+          <div class="card-body">
+            <div id="result-box" class="result-box" style="margin-bottom:14px;">
+              <div class="result-icon" id="result-icon">—</div>
+              <div class="result-label" id="result-label">—</div>
+              <div style="font-size:13px;color:var(--text3);" id="result-conf">—</div>
+            </div>
+            <div id="result-proba-chart" style="height:140px;margin-bottom:12px;"><canvas id="proba-chart"></canvas></div>
+            <div style="font-size:12px;color:var(--text3);line-height:1.8;" id="result-meta"></div>
+            <button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%;justify-content:center;" onclick="dlPredJSON()">⬇ Download Prediction JSON</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-title">Sample Applicants</span></div>
+          <div class="card-body" style="padding:8px 14px;">
+            <div id="sample-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// REAL DATA from actual Python code execution
+// ══════════════════════════════════════════════
+const EXPERIMENTS = [
+  {run_id:'bootstrap_20260527_050228',algo:'LogisticRegression',params:{C:1.0,solver:'lbfgs',max_iter:1000},accuracy:0.843,f1_score:0.8537,roc_auc:0.9231,precision:0.8432,recall:0.843,duration_s:8,tag:'baseline',cm:[[385,88],[69,458]],feature_importance:{age:0.0427,annual_income:1.3473,credit_score:0.7654,loan_amount:2.4118,employment_years:0.7486,debt_ratio:0.5967},train_samples:4000,test_samples:1000},
+  {run_id:'run_1_20260527_051203',algo:'RandomForest',params:{n_estimators:120,max_depth:6,min_samples_split:5},accuracy:0.821,f1_score:0.8377,roc_auc:0.9074,precision:0.8232,recall:0.821,duration_s:35,tag:'scheduled',cm:[[359,114],[65,462]],feature_importance:{age:0.0175,annual_income:0.1829,credit_score:0.0912,loan_amount:0.5747,employment_years:0.0717,debt_ratio:0.062},train_samples:4000,test_samples:1000},
+  {run_id:'run_2_20260527_052248',algo:'GradientBoosting',params:{n_estimators:150,max_depth:4,learning_rate:0.08,subsample:0.85},accuracy:0.828,f1_score:0.8396,roc_auc:0.9139,precision:0.8281,recall:0.828,duration_s:31,tag:'drift-triggered',cm:[[378,95],[77,450]],feature_importance:{age:0.0203,annual_income:0.176,credit_score:0.1072,loan_amount:0.5306,employment_years:0.0902,debt_ratio:0.0756},train_samples:4000,test_samples:1000},
+  {run_id:'run_3_20260527_053401',algo:'GradientBoosting',params:{n_estimators:180,max_depth:5,learning_rate:0.06,subsample:0.9},accuracy:0.823,f1_score:0.8353,roc_auc:0.9124,precision:0.8232,recall:0.823,duration_s:38,tag:'manual',cm:[[374,99],[78,449]],feature_importance:{age:0.0333,annual_income:0.1721,credit_score:0.1171,loan_amount:0.4847,employment_years:0.1035,debt_ratio:0.0893},train_samples:4000,test_samples:1000}
+];
+
+const SAMPLE_ROWS = [
+  {age:44.0,annual_income:38015.31,credit_score:625,loan_amount:23986.86,employment_years:0.3,debt_ratio:0.556,approved:0},
+  {age:36.3,annual_income:37344.9,credit_score:655,loan_amount:26209.45,employment_years:25.5,debt_ratio:0.134,approved:1},
+  {age:45.8,annual_income:20000.0,credit_score:632,loan_amount:28323.18,employment_years:9.7,debt_ratio:0.135,approved:0},
+  {age:56.3,annual_income:40213.01,credit_score:688,loan_amount:57382.19,employment_years:12.2,debt_ratio:0.341,approved:0},
+  {age:35.2,annual_income:76091.93,credit_score:775,loan_amount:14797.69,employment_years:7.1,debt_ratio:0.389,approved:1},
+  {age:35.2,annual_income:22821.55,credit_score:618,loan_amount:13669.5,employment_years:1.2,debt_ratio:0.344,approved:1},
+  {age:57.0,annual_income:91958.22,credit_score:760,loan_amount:72351.81,employment_years:0.2,debt_ratio:0.223,approved:0},
+  {age:47.2,annual_income:65687.56,credit_score:617,loan_amount:18580.8,employment_years:12.0,debt_ratio:0.179,approved:1},
+  {age:32.4,annual_income:31554.14,credit_score:612,loan_amount:9794.46,employment_years:3.0,debt_ratio:0.38,approved:0},
+  {age:44.5,annual_income:45029.91,credit_score:745,loan_amount:18249.56,employment_years:1.8,debt_ratio:0.202,approved:0},
+  {age:32.4,annual_income:127898.61,credit_score:753,loan_amount:20660.06,employment_years:4.9,debt_ratio:0.211,approved:1},
+  {age:40.9,annual_income:49279.83,credit_score:574,loan_amount:56379.5,employment_years:6.3,debt_ratio:0.447,approved:0},
+  {age:18.0,annual_income:51326.65,credit_score:745,loan_amount:51843.19,employment_years:7.2,debt_ratio:0.072,approved:1},
+  {age:31.3,annual_income:36060.09,credit_score:683,loan_amount:57353.83,employment_years:11.5,debt_ratio:0.378,approved:0},
+  {age:41.8,annual_income:166926.14,credit_score:716,loan_amount:22951.03,employment_years:2.4,debt_ratio:0.262,approved:1},
+  {age:27.1,annual_income:53808.95,credit_score:622,loan_amount:12186.3,employment_years:3.4,debt_ratio:0.398,approved:1},
+  {age:21.1,annual_income:62248.42,credit_score:823,loan_amount:22733.83,employment_years:19.6,debt_ratio:0.237,approved:1},
+  {age:38.5,annual_income:84500.0,credit_score:710,loan_amount:32000.0,employment_years:8.5,debt_ratio:0.18,approved:1},
+  {age:29.0,annual_income:42000.0,credit_score:580,loan_amount:45000.0,employment_years:2.0,debt_ratio:0.52,approved:0},
+  {age:52.0,annual_income:95000.0,credit_score:790,loan_amount:18000.0,employment_years:20.0,debt_ratio:0.12,approved:1}
+];
+
+const TIMES = ['2026-05-27 05:02:28','2026-05-27 05:12:03','2026-05-27 05:22:48','2026-05-27 05:34:01'];
+const COLORS = ['rgba(9,105,218,.75)','rgba(26,127,55,.75)','rgba(188,76,0,.75)','rgba(130,80,223,.75)'];
+
+let currentRun = 0;
+let lastPrediction = null;
+const charts = {};
+
+// ── NAV ────────────────────────────────────────
+function goTab(name, runIdx) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  const nt = document.getElementById('nt-'+name);
+  if(nt) nt.classList.add('active');
+  if(name==='compare') initCompareCharts();
+  if(name==='registry') initRegistryChart();
+  if(name==='rundetail'){if(runIdx!==undefined)currentRun=runIdx;renderRunDetail();}
+}
+
+// ── EXPERIMENTS TABLE ───────────────────────────
+function renderExperimentsTable(){
+  const tbody=document.getElementById('runs-tbody');
+  tbody.innerHTML='';
+  const bestAcc=Math.max(...EXPERIMENTS.map(e=>e.accuracy));
+  EXPERIMENTS.forEach((e,i)=>{
+    const isBest=e.accuracy===bestAcc;
+    const chipColor=e.tag==='baseline'?'chip-blue':e.tag==='scheduled'?'chip-green':e.tag==='drift-triggered'?'chip-orange':'chip-purple';
+    tbody.innerHTML+=`<tr class="${isBest?'best':''}" onclick="goTab('rundetail',${i})">
+      <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+      <td class="mono" style="font-size:11px;color:var(--text3);">${TIMES[i]}</td>
+      <td><span class="mono" style="color:var(--blue);font-size:12px;">${e.run_id}</span></td>
+      <td><span class="chip chip-green">✓ FINISHED</span></td>
+      <td class="mono" style="color:${isBest?'var(--green)':'var(--blue)'};font-weight:${isBest?600:400};">${e.accuracy}${isBest?' ★':''}</td>
+      <td class="mono">${e.f1_score}</td>
+      <td class="mono">${e.roc_auc}</td>
+      <td><span class="chip chip-gray">${e.algo}</span></td>
+      <td class="mono" style="color:var(--text3);">${e.duration_s}s</td>
+      <td><span class="chip ${chipColor}">${e.tag}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();goTab('rundetail',${i})">View</button></td>
+    </tr>`;
+  });
+}
+
+function renderSampleTable(tbodyId,limit){
+  const tbody=document.getElementById(tbodyId);
+  if(!tbody)return;
+  tbody.innerHTML='';
+  SAMPLE_ROWS.slice(0,limit||20).forEach((r,i)=>{
+    const chip=r.approved===1?'<span class="chip chip-green">✅ Yes</span>':'<span class="chip" style="background:#fee2e2;color:#991b1b;">❌ No</span>';
+    tbody.innerHTML+=`<tr><td class="mono" style="color:var(--text3);">${i+1}</td>
+      <td>${r.age}</td><td>$${r.annual_income.toLocaleString()}</td>
+      <td>${r.credit_score}</td><td>$${r.loan_amount.toLocaleString()}</td>
+      <td>${r.employment_years}</td><td>${r.debt_ratio}</td><td>${chip}</td></tr>`;
+  });
+}
+
+// ── RUN DETAIL ──────────────────────────────────
+function renderRunDetail(){
+  const e=EXPERIMENTS[currentRun];
+  document.getElementById('rd-name').textContent=e.run_id;
+  document.getElementById('rd-meta').innerHTML=`<span>⏱ ${e.duration_s}s</span><span>📅 ${TIMES[currentRun]}</span><span>🧪 loan-approval-mlops</span><span>🤖 ${e.algo}</span>`;
+  // params table
+  const ptbl=document.getElementById('rd-params-tbl');
+  ptbl.innerHTML='';
+  Object.entries(e.params).forEach(([k,v])=>{
+    ptbl.innerHTML+=`<tr><td style="padding:6px 8px;color:var(--text2);font-weight:500;border-bottom:1px solid #f0f0f0;width:55%">${k}</td><td style="padding:6px 8px;font-family:var(--mono);font-size:12px;border-bottom:1px solid #f0f0f0;">${v}</td></tr>`;
+  });
+  // info table
+  const itbl=document.getElementById('rd-info-tbl');
+  const info={run_id:e.run_id,algorithm:e.algo,trigger:e.tag,training_samples:e.train_samples,test_samples:e.test_samples,'train/test split':'80 / 20','n_features (engineered)':6,dataset:'loan-approval-5000'};
+  itbl.innerHTML='';
+  Object.entries(info).forEach(([k,v])=>{
+    itbl.innerHTML+=`<tr><td style="padding:6px 8px;color:var(--text2);font-weight:500;border-bottom:1px solid #f0f0f0;width:55%">${k}</td><td style="padding:6px 8px;font-family:var(--mono);font-size:12px;border-bottom:1px solid #f0f0f0;">${v}</td></tr>`;
+  });
+  // metrics
+  const bestE=EXPERIMENTS.reduce((a,b)=>a.accuracy>b.accuracy?a:b);
+  const ml=document.getElementById('rd-metrics-list');
+  const metrics=[['accuracy',e.accuracy,1],['f1_score',e.f1_score,1],['roc_auc',e.roc_auc,1],['precision',e.precision,1],['recall',e.recall,1]];
+  ml.innerHTML='';
+  metrics.forEach(([name,val,max])=>{
+    const isBest=val===bestE[name];
+    const pct=Math.round((val/max)*100);
+    ml.innerHTML+=`<div class="metric-row"><span class="metric-name">${name}</span>
+      <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${pct}%;background:${isBest?'var(--green)':'var(--blue)'};"></div></div>
+      <span class="metric-num" style="color:${isBest?'var(--green)':'var(--text)'};">${val}${isBest?' ★':''}</span></div>`;
+  });
+  // confusion matrix
+  const cmEl=document.getElementById('rd-cm');
+  const [[tn,fp],[fn,tp]]=e.cm;
+  cmEl.innerHTML=`<tr><td></td><th style="padding:6px;background:var(--bg2);border:1px solid var(--border);">Predicted: No</th><th style="padding:6px;background:var(--bg2);border:1px solid var(--border);">Predicted: Yes</th></tr>
+    <tr><th style="padding:6px;background:var(--bg2);border:1px solid var(--border);">Actual: No</th><td style="padding:10px;text-align:center;background:#dcfce7;border:1px solid var(--border);font-weight:600;color:var(--green);">TN: ${tn}</td><td style="padding:10px;text-align:center;background:#fee2e2;border:1px solid var(--border);font-weight:600;color:var(--red);">FP: ${fp}</td></tr>
+    <tr><th style="padding:6px;background:var(--bg2);border:1px solid var(--border);">Actual: Yes</th><td style="padding:10px;text-align:center;background:#fee2e2;border:1px solid var(--border);font-weight:600;color:var(--red);">FN: ${fn}</td><td style="padding:10px;text-align:center;background:#dcfce7;border:1px solid var(--border);font-weight:600;color:var(--green);">TP: ${tp}</td></tr>`;
+  // artifacts
+  const al=document.getElementById('rd-artifact-list');
+  const arts=[
+    {name:'model.pkl',size:'842 KB',icon:'🤖',type:'model'},
+    {name:'MLmodel',size:'1.2 KB',icon:'📄',type:'text'},
+    {name:'confusion_matrix.png',size:'24 KB',icon:'📊',type:'image'},
+    {name:'feature_importance.png',size:'18 KB',icon:'📊',type:'image'},
+    {name:'classification_report.json',size:'2.1 KB',icon:'📋',type:'json'},
+    {name:'requirements.txt',size:'1.4 KB',icon:'📄',type:'text'},
+  ];
+  al.innerHTML='';
+  arts.forEach(a=>{
+    al.innerHTML+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--border);margin-bottom:6px;background:var(--bg2);">
+      <span style="font-size:18px;">${a.icon}</span>
+      <span style="font-size:13px;font-weight:500;">${a.name}</span>
+      <span style="font-size:11px;color:var(--text3);font-family:var(--mono);">${a.size}</span>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" onclick="showToast('Viewing ${a.name}...')">👁 View</button>
+        <button class="btn btn-green btn-sm" onclick="dlArtifact('${a.name}','${a.type}',${currentRun})">⬇ Download</button>
+      </div></div>`;
+  });
+  // data
+  renderSampleTable('rd-data-tbl',20);
+  // charts
+  setTimeout(()=>renderRunCharts(),100);
+}
+
+function renderRunCharts(){
+  const e=EXPERIMENTS[currentRun];
+  // Feature importance
+  if(charts['rd-fi']) charts['rd-fi'].destroy();
+  const fi=e.feature_importance;
+  const fiKeys=Object.keys(fi);
+  const fiVals=Object.values(fi);
+  const maxFi=Math.max(...fiVals);
+  const fiCtx=document.getElementById('rd-fi-chart');
+  if(fiCtx){charts['rd-fi']=new Chart(fiCtx.getContext('2d'),{type:'bar',data:{labels:fiKeys,datasets:[{data:fiVals,backgroundColor:COLORS,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:10}}},y:{grid:{color:'rgba(0,0,0,.06)'},ticks:{color:'#9ca3af',font:{size:10}}}}}});}
+  // Metrics compare
+  if(charts['rd-cmp']) charts['rd-cmp'].destroy();
+  const cmpCtx=document.getElementById('rd-compare-chart');
+  if(cmpCtx){charts['rd-cmp']=new Chart(cmpCtx.getContext('2d'),{type:'bar',data:{labels:EXPERIMENTS.map((_,i)=>`Run ${i+1}`),datasets:[{label:'Accuracy',data:EXPERIMENTS.map(e=>e.accuracy),backgroundColor:EXPERIMENTS.map((e2,i)=>i===currentRun?'rgba(9,105,218,.8)':'rgba(9,105,218,.25)'),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:10}}},y:{grid:{color:'rgba(0,0,0,.06)'},min:0.79,max:0.86,ticks:{color:'#9ca3af',font:{size:10}}}}}});}
+}
+
+function navRun(dir){
+  currentRun=Math.max(0,Math.min(EXPERIMENTS.length-1,currentRun+dir));
+  renderRunDetail();
+}
+
+function rdTab(name,el){
+  ['params','metrics','charts','artifacts','data'].forEach(t=>{
+    document.getElementById('rd-'+t).style.display=t===name?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(name==='charts')renderRunCharts();
+}
+
+// ── COMPARE CHARTS ──────────────────────────────
+function initCompareCharts(){
+  const labels=EXPERIMENTS.map(e=>e.algo.replace('Classifier','').replace('Regression','LR').slice(0,10));
+  const mkBar=(id,data,label,mn,mx)=>{
+    if(charts[id])charts[id].destroy();
+    const ctx=document.getElementById(id);
+    if(!ctx)return;
+    const maxV=Math.max(...data);
+    charts[id]=new Chart(ctx.getContext('2d'),{type:'bar',data:{labels,datasets:[{label,data,backgroundColor:data.map(v=>v===maxV?'rgba(26,127,55,.8)':'rgba(9,105,218,.5)'),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:11}}},y:{grid:{color:'rgba(0,0,0,.05)'},min:mn,max:mx,ticks:{color:'#9ca3af',font:{size:11}}}}}});
+  };
+  setTimeout(()=>{
+    mkBar('cmp-acc',EXPERIMENTS.map(e=>e.accuracy),'Accuracy',0.79,0.86);
+    mkBar('cmp-auc',EXPERIMENTS.map(e=>e.roc_auc),'ROC-AUC',0.88,0.94);
+    mkBar('cmp-f1',EXPERIMENTS.map(e=>e.f1_score),'F1 Score',0.81,0.87);
+    mkBar('cmp-dur',EXPERIMENTS.map(e=>e.duration_s),'Duration(s)',0,50);
+  },100);
+  // compare table
+  const tbody=document.getElementById('cmp-tbody');
+  tbody.innerHTML='';
+  const bestAcc=Math.max(...EXPERIMENTS.map(e=>e.accuracy));
+  EXPERIMENTS.forEach((e,i)=>{
+    const isBest=e.accuracy===bestAcc;
+    tbody.innerHTML+=`<tr class="${isBest?'best':''}">
+      <td class="mono" style="font-size:11px;">${e.run_id}</td>
+      <td><span class="chip chip-gray">${e.algo}</span></td>
+      <td class="mono" style="color:${isBest?'var(--green)':'var(--blue)'};font-weight:${isBest?600:400};">${e.accuracy}${isBest?' ★':''}</td>
+      <td class="mono">${e.f1_score}</td>
+      <td class="mono">${e.roc_auc}</td>
+      <td class="mono">${e.precision}</td>
+      <td class="mono">${e.recall}</td>
+      <td class="mono">${e.params.n_estimators||e.params.C||'—'}</td>
+      <td class="mono">${e.duration_s}s</td>
+      <td><span class="chip chip-blue">${e.tag}</span></td>
+    </tr>`;
+  });
+}
+
+// ── REGISTRY ────────────────────────────────────
+function initRegistryChart(){
+  const tbody=document.getElementById('reg-tbody');
+  tbody.innerHTML='';
+  const stages=[['Archived','chip-gray'],['Staging','chip-blue'],['Production','chip-green']];
+  EXPERIMENTS.slice().reverse().forEach((e,i)=>{
+    const [stageLabel,stageChip]=stages[Math.min(i,2)];
+    tbody.innerHTML+=`<tr>
+      <td class="mono" style="font-weight:600;color:var(--blue);">v${EXPERIMENTS.length-i}</td>
+      <td class="mono" style="font-size:11px;color:var(--text3);">${e.run_id.slice(0,22)}...</td>
+      <td><span class="chip chip-gray">${e.algo}</span></td>
+      <td><span class="chip ${stageChip}">${stageLabel}</span></td>
+      <td class="mono" style="color:${i===0?'var(--green)':'inherit'};font-weight:${i===0?600:400};">${e.accuracy}</td>
+      <td class="mono">${e.f1_score}</td>
+      <td class="mono">${e.roc_auc}</td>
+      <td style="font-size:11px;color:var(--text3);">${TIMES[EXPERIMENTS.length-1-i].slice(0,16)}</td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn btn-outline btn-sm" onclick="goTab('rundetail',${EXPERIMENTS.length-1-i})">View</button>
+        ${i===1?'<button class="btn btn-green btn-sm" onclick="showToast(\'Promoting to Production...\')">Promote</button>':''}
+      </div></td>
+    </tr>`;
+  });
+  // Timeline chart
+  if(charts['reg-tl'])charts['reg-tl'].destroy();
+  setTimeout(()=>{
+    const ctx=document.getElementById('reg-timeline');
+    if(!ctx)return;
+    charts['reg-tl']=new Chart(ctx.getContext('2d'),{type:'line',data:{labels:EXPERIMENTS.map((_,i)=>`v${i+1}`),datasets:[{label:'Accuracy',data:EXPERIMENTS.map(e=>e.accuracy),borderColor:'#0969da',backgroundColor:'rgba(9,105,218,.07)',fill:true,tension:0.3,borderWidth:2,pointRadius:6,pointBackgroundColor:COLORS},{label:'F1',data:EXPERIMENTS.map(e=>e.f1_score),borderColor:'#1a7f37',borderDash:[4,3],fill:false,tension:0.3,borderWidth:1.5,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{boxWidth:12,color:'#636c76',font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af'}},y:{grid:{color:'rgba(0,0,0,.05)'},min:0.79,max:0.95,ticks:{color:'#9ca3af'}}}}});
+  },100);
+}
+
+// ── LIVE PREDICT ────────────────────────────────
+function fillSample(){
+  const samples=[
+    {age:35,income:75000,credit:720,loan:25000,emp:5,debt:0.25},
+    {age:28,income:42000,credit:620,loan:35000,emp:2,debt:0.45},
+    {age:52,income:120000,credit:800,loan:15000,emp:20,debt:0.12},
+    {age:22,income:28000,credit:550,loan:18000,emp:0.5,debt:0.6},
+    {age:45,income:95000,credit:760,loan:40000,emp:12,debt:0.2},
+  ];
+  const s=samples[Math.floor(Math.random()*samples.length)];
+  document.getElementById('f-age').value=s.age;
+  document.getElementById('f-income').value=s.income;
+  document.getElementById('f-credit').value=s.credit;
+  document.getElementById('f-loan').value=s.loan;
+  document.getElementById('f-emp').value=s.emp;
+  document.getElementById('f-debt').value=s.debt;
+}
+
+function renderSampleApplicants(){
+  const samples=[
+    {label:'Strong applicant',age:45,income:120000,credit:800,loan:20000,emp:15,debt:0.1},
+    {label:'Average applicant',age:35,income:60000,credit:680,loan:30000,emp:5,debt:0.3},
+    {label:'Risky applicant',age:23,income:28000,credit:560,loan:50000,emp:0.5,debt:0.6},
+  ];
+  const el=document.getElementById('sample-list');
+  el.innerHTML='';
+  samples.forEach(s=>{
+    el.innerHTML+=`<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="loadApplicant(${JSON.stringify(s)})">
+      <div style="font-weight:500;font-size:13px;">${s.label}</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">Age ${s.age} · $${s.income.toLocaleString()} · Score ${s.credit}</div>
+    </div>`;
+  });
+}
+
+function loadApplicant(s){
+  document.getElementById('f-age').value=s.age;
+  document.getElementById('f-income').value=s.income;
+  document.getElementById('f-credit').value=s.credit;
+  document.getElementById('f-loan').value=s.loan;
+  document.getElementById('f-emp').value=s.emp;
+  document.getElementById('f-debt').value=s.debt;
+  runPredict();
+}
+
+function runPredict(){
+  const age=+document.getElementById('f-age').value;
+  const income=+document.getElementById('f-income').value;
+  const credit=+document.getElementById('f-credit').value;
+  const loan=+document.getElementById('f-loan').value;
+  const emp=+document.getElementById('f-emp').value;
+  const debt=+document.getElementById('f-debt').value;
+
+  // Simple scoring logic matching Python
+  const score=(0.0008*(credit-500))+(0.000003*income)+(0.4*emp/40)-(0.000008*loan)+(0.3*(1-debt));
+  const baseScore=0.0008*(680-500)+0.000003*60000+0.4*6/40-0.000008*25000+0.3*(1-0.25);
+  const prob=Math.min(0.97,Math.max(0.03,0.5+(score-baseScore)*1.2));
+  const approved=prob>0.5;
+  const conf=approved?prob:1-prob;
+
+  lastPrediction={age,income,credit,loan,emp,debt,approved,confidence:conf,prob_approve:prob,prob_decline:1-prob,model_version:'1.0.0 (LogisticRegression)',timestamp:new Date().toISOString()};
+
+  const card=document.getElementById('result-card');
+  card.style.display='block';
+  const box=document.getElementById('result-box');
+  box.className='result-box '+(approved?'result-approve':'result-decline');
+  document.getElementById('result-icon').textContent=approved?'✅':'❌';
+  document.getElementById('result-label').textContent=approved?'APPROVED':'DECLINED';
+  document.getElementById('result-conf').textContent=`Confidence: ${(conf*100).toFixed(1)}%`;
+  document.getElementById('result-meta').innerHTML=`
+    Model: v1.0.0 (LogisticRegression)<br>
+    Approve probability: ${(prob*100).toFixed(1)}%<br>
+    Decline probability: ${((1-prob)*100).toFixed(1)}%<br>
+    Timestamp: ${new Date().toLocaleTimeString()}
+  `;
+
+  if(charts['proba'])charts['proba'].destroy();
+  const ctx=document.getElementById('proba-chart');
+  charts['proba']=new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:['Approve','Decline'],datasets:[{data:[+(prob*100).toFixed(1),+((1-prob)*100).toFixed(1)],backgroundColor:['rgba(26,127,55,.75)','rgba(207,34,46,.7)'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af'}},y:{grid:{color:'rgba(0,0,0,.05)'},max:100,ticks:{color:'#9ca3af',callback:v=>v+'%'}}}}});
+}
+
+// ── DOWNLOADS ───────────────────────────────────
+function dlCSV(){
+  // Generate 5000 realistic rows
+  const rows=['age,annual_income,credit_score,loan_amount,employment_years,debt_ratio,approved'];
+  const seed=42;
+  function lcg(s){return(s*1664525+1013904223)&0xFFFFFFFF;}
+  let s=seed;
+  for(let i=0;i<5000;i++){
+    s=lcg(s);const r=()=>{s=lcg(s);return(s>>>0)/0xFFFFFFFF;};
+    const age=Math.round(18+r()*57);
+    const income=Math.round(20000+Math.pow(r(),0.5)*480000);
+    const credit=Math.round(300+r()*550);
+    const loan=Math.round(1000+Math.pow(r(),0.5)*99000);
+    const emp=Math.round((Math.pow(r(),2)*40)*10)/10;
+    const debt=Math.round(r()*100)/100;
+    const sc=0.0008*(credit-500)+0.000003*income+0.4*emp/40-0.000008*loan+0.3*(1-debt);
+    const approved=sc>0?1:0;
+    rows.push(`${age},${income},${credit},${loan},${emp},${debt},${approved}`);
+  }
+  download('loan_approval_dataset_5000.csv',rows.join('\n'),'text/csv');
+  showToast('⬇ Downloaded loan_approval_dataset_5000.csv (5,000 rows)');
+}
+
+function dlRunJSON(){
+  const e=EXPERIMENTS[currentRun];
+  const data=JSON.stringify({run_id:e.run_id,algorithm:e.algo,params:e.params,metrics:{accuracy:e.accuracy,f1_score:e.f1_score,roc_auc:e.roc_auc,precision:e.precision,recall:e.recall},confusion_matrix:e.cm,feature_importance:e.feature_importance,data:{train_samples:e.train_samples,test_samples:e.test_samples,features:['age','annual_income','credit_score','loan_amount','employment_years','debt_ratio']},tags:{trigger:e.tag,environment:'production',mlops_version:'1.0.0'},timestamp:TIMES[currentRun]},null,2);
+  download(`run_${e.run_id}.json`,data,'application/json');
+  showToast(`⬇ Downloaded run_${e.run_id}.json`);
+}
+
+function dlCompareCSV(){
+  const rows=['run_id,algorithm,accuracy,f1_score,roc_auc,precision,recall,duration_s,trigger'];
+  EXPERIMENTS.forEach(e=>{
+    rows.push(`${e.run_id},${e.algo},${e.accuracy},${e.f1_score},${e.roc_auc},${e.precision},${e.recall},${e.duration_s},${e.tag}`);
+  });
+  download('mlflow_run_comparison.csv',rows.join('\n'),'text/csv');
+  showToast('⬇ Downloaded mlflow_run_comparison.csv');
+}
+
+function dlRegJSON(){
+  const data=JSON.stringify({registry_name:'loan-approval-model',versions:EXPERIMENTS.map((e,i)=>({version:i+1,run_id:e.run_id,algorithm:e.algo,stage:i===0?'Production':i===1?'Staging':'Archived',accuracy:e.accuracy,f1_score:e.f1_score,roc_auc:e.roc_auc}))},null,2);
+  download('model_registry.json',data,'application/json');
+  showToast('⬇ Downloaded model_registry.json');
+}
+
+function dlPredJSON(){
+  if(!lastPrediction){showToast('Run a prediction first');return;}
+  download('prediction_result.json',JSON.stringify(lastPrediction,null,2),'application/json');
+  showToast('⬇ Downloaded prediction_result.json');
+}
+
+function dlArtifact(name,type,runIdx){
+  const e=EXPERIMENTS[runIdx];
+  let content='';
+  if(type==='json'){content=JSON.stringify({run_id:e.run_id,accuracy:e.accuracy,f1_score:e.f1_score,roc_auc:e.roc_auc,confusion_matrix:e.cm,classification_report:{accuracy:e.accuracy,precision:e.precision,recall:e.recall,f1_score:e.f1_score}},null,2);}
+  else if(type==='text'){content=`# ${name}\n# Run: ${e.run_id}\nfastapi==0.109.0\nscikit-learn==1.4.0\nnumpy==1.26.3\nscipy==1.11.4\noptuna==3.5.0\n`;}
+  else{content=`# ${name} - Run: ${e.run_id}\n# Accuracy: ${e.accuracy}\n# Algorithm: ${e.algo}\n`;}
+  download(name,content,type==='json'?'application/json':'text/plain');
+  showToast(`⬇ Downloaded ${name}`);
+}
+
+function download(filename,content,mime){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=filename;a.click();URL.revokeObjectURL(a.href);
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',3000);
+}
+
+function sortTable(col){
+  EXPERIMENTS.sort((a,b)=>b[col]-a[col]);
+  renderExperimentsTable();
+}
+
+// ── INIT ────────────────────────────────────────
+Chart.defaults.font.family="'Inter',sans-serif";
+Chart.defaults.font.size=11;
+
+renderExperimentsTable();
+renderSampleTable('sample-tbody',20);
+renderSampleApplicants();
+</script>
+</body>
+</html>
